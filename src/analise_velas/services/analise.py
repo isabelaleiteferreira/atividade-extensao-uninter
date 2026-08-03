@@ -1,17 +1,17 @@
-# Faz as contas das vendas (periodo e produtos)
+# Faz as contas das vendas (período e produtos)
 from analise_velas.database import VendaMensal, VendaProduto, Produto
 from analise_velas.services.calendario import datas_do_mes, MESES
 
 
 def reais(valor):
-    # Formata numero para R$ no padrao brasileiro
+    # Formata número para R$ no padrão brasileiro
     texto = "{:,.2f}".format(valor)
     texto = texto.replace(",", "#").replace(".", ",").replace("#", ".")
     return "R$ " + texto
 
 
 def filtrar_por_importacao(query, coluna, importacao_ids):
-    # deixa passar tudo se nao houver filtro, senao aceita um id unico ou uma lista de ids
+    # deixa passar tudo se não houver filtro, senão aceita um id único ou uma lista de ids
     if importacao_ids is None:
         return query
     if isinstance(importacao_ids, list):
@@ -28,7 +28,7 @@ def analisar_periodo(db, importacao_ids=None):
     if not vendas:
         return None
 
-    # Agrupa por mes para consolidar caso haja mais de uma planilha de periodo
+    # Agrupa por mês para consolidar caso haja mais de uma planilha de período
     vendas_por_mes = {}
     for v in vendas:
         m = v.mes
@@ -47,6 +47,8 @@ def analisar_periodo(db, importacao_ids=None):
 
     periodos = []
     anterior = None
+    totais_com_data_forte = []
+    totais_sem_data_forte = []
     for item in lista_agrupada:
         val = item["total"]
         if anterior and anterior > 0:
@@ -54,13 +56,21 @@ def analisar_periodo(db, importacao_ids=None):
         else:
             variacao = None
 
-        datas = [d["nome"] for d in datas_do_mes(item["mes"], item["ano"])]
+        datas_mes = datas_do_mes(item["mes"], item["ano"])
+        datas = [d["nome"] for d in datas_mes]
+        tem_data_forte = any(d["forte"] for d in datas_mes)
+        if tem_data_forte:
+            totais_com_data_forte.append(val)
+        else:
+            totais_sem_data_forte.append(val)
+
         periodos.append({
             "mes_num": item["mes"],
             "nome": MESES[item["mes"]],
             "total": round(val, 2),
             "variacao_pct": variacao,
             "datas": datas,
+            "tem_data_forte": tem_data_forte,
         })
         anterior = val
 
@@ -70,6 +80,19 @@ def analisar_periodo(db, importacao_ids=None):
             destaque += f" Período coincidente com {d['nome']}."
             break
 
+    # Compara o faturamento médio dos meses com e sem data comemorativa forte
+    comparacao_datas = None
+    if totais_com_data_forte and totais_sem_data_forte:
+        media_com = sum(totais_com_data_forte) / len(totais_com_data_forte)
+        media_sem = sum(totais_sem_data_forte) / len(totais_sem_data_forte)
+        diferenca_pct = round((media_com - media_sem) / media_sem * 100, 1) if media_sem > 0 else None
+        comparacao_datas = {
+            "media_com_data_forte": round(media_com, 2),
+            "media_sem_data_forte": round(media_sem, 2),
+            "diferenca_pct": diferenca_pct,
+            "qtd_com_data_forte": len(totais_com_data_forte),
+            "qtd_sem_data_forte": len(totais_sem_data_forte),
+        }
 
     return {
         "tipo": "periodo",
@@ -81,6 +104,7 @@ def analisar_periodo(db, importacao_ids=None):
         },
         "periodos": periodos,
         "destaque": destaque,
+        "comparacao_datas": comparacao_datas,
     }
 
 
