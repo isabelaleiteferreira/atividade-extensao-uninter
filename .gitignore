@@ -1,0 +1,11 @@
+.venv/
+.env
+__pycache__/
+*.pyc
+uploads/
+*.db
+.DS_Store
+
+# arquivos de configuracao do Claude Code, nao fazem parte do projeto
+.claude/
+CLAUDE.md
