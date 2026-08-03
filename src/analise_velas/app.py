@@ -1,6 +1,13 @@
 # Aplicação Streamlit para Análise de Vendas de Velas (TCC CST Banco de Dados)
 import streamlit as st
 import pandas as pd
+import altair as alt
+
+# cores usadas nos graficos: laranja para meses/grupos com data comemorativa forte,
+# cinza-azulado para os demais. Sem legenda lateral (dificil de ler no celular);
+# o significado das cores fica explicado direto no texto acima de cada grafico.
+COR_COM_DATA = "#f59e0b"
+COR_SEM_DATA = "#64748b"
 
 from analise_velas.database import (
     criar_tabelas, SessionLocal,
@@ -219,36 +226,50 @@ else:
 
             st.markdown("<br>", unsafe_allow_html=True)
             st.subheader("Gráfico de Faturamento por Mês")
-            st.caption("As barras em destaque marcam os meses com uma data comemorativa forte (Páscoa, Dia das Mães, Finados, etc.):")
+            st.caption("Os meses em laranja têm uma data comemorativa forte (Páscoa, Dia de Iemanjá, Nossa Senhora Aparecida, Finados); os meses em cinza não têm:")
 
-            df_p = pd.DataFrame(periodos).set_index("nome")
-            df_p["Data comemorativa forte"] = df_p["tem_data_forte"].map({True: "Sim", False: "Não"})
-            st.bar_chart(df_p, y="total", color="Data comemorativa forte")
+            df_p = pd.DataFrame(periodos)
+            df_p["cor"] = df_p["tem_data_forte"].map({True: COR_COM_DATA, False: COR_SEM_DATA})
+            grafico_mensal = alt.Chart(df_p).mark_bar(size=40).encode(
+                x=alt.X("nome:N", sort=None, title=None, axis=alt.Axis(labelAngle=0, labelFontSize=14)),
+                y=alt.Y("total:Q", title="Faturamento (R$)", axis=alt.Axis(labelFontSize=13)),
+                color=alt.Color("cor:N", scale=None, legend=None),
+                tooltip=[alt.Tooltip("nome:N", title="Mês"), alt.Tooltip("total:Q", title="Faturamento", format=",.2f")],
+            ).properties(height=340)
+            st.altair_chart(grafico_mensal, width="stretch")
 
             if comparacao_datas:
-                st.subheader("Impacto das Datas Comemorativas no Faturamento")
-                st.write("Comparação entre a média de faturamento dos meses que caem em cima de uma data comemorativa forte e os demais meses:")
+                st.subheader("Comparativo: Meses com Data Comemorativa x Meses sem Data Comemorativa")
 
                 diferenca = comparacao_datas["diferenca_pct"]
                 if diferenca is not None:
                     if diferenca > 0:
-                        st.success(f"Meses com data comemorativa forte faturam, em média, {diferenca}% a mais do que os outros meses.")
+                        st.success(f"Meses com data comemorativa faturam, em média, {diferenca}% a mais do que os meses sem data comemorativa.")
                     elif diferenca < 0:
-                        st.warning(f"Meses com data comemorativa forte faturam, em média, {abs(diferenca)}% a menos do que os outros meses.")
+                        st.warning(f"Meses com data comemorativa faturam, em média, {abs(diferenca)}% a menos do que os meses sem data comemorativa.")
                     else:
                         st.write("Não há diferença relevante entre os dois grupos de meses.")
+                st.caption(f"Considerando {comparacao_datas['qtd_com_data_forte']} mês(es) com data comemorativa e {comparacao_datas['qtd_sem_data_forte']} mês(es) sem, nos dados enviados.")
 
                 df_comp = pd.DataFrame({
-                    "Grupo de meses": [
-                        f"Com data forte ({comparacao_datas['qtd_com_data_forte']} meses)",
-                        f"Sem data forte ({comparacao_datas['qtd_sem_data_forte']} meses)",
-                    ],
-                    "Faturamento Médio": [
-                        comparacao_datas["media_com_data_forte"],
-                        comparacao_datas["media_sem_data_forte"],
-                    ],
-                }).set_index("Grupo de meses")
-                st.bar_chart(df_comp["Faturamento Médio"], color="#8b5cf6")
+                    "grupo": ["Com data comemorativa", "Sem data comemorativa"],
+                    "media": [comparacao_datas["media_com_data_forte"], comparacao_datas["media_sem_data_forte"]],
+                    "cor": [COR_COM_DATA, COR_SEM_DATA],
+                })
+                df_comp["rotulo"] = df_comp["media"].apply(reais)
+                escala_y = alt.Scale(domain=[0, df_comp["media"].max() * 1.25])
+
+                barras = alt.Chart(df_comp).mark_bar(size=110).encode(
+                    x=alt.X("grupo:N", sort=None, title=None, axis=alt.Axis(labelAngle=0, labelFontSize=15, labelLimit=200)),
+                    y=alt.Y("media:Q", title="Faturamento médio (R$)", axis=alt.Axis(labelFontSize=13), scale=escala_y),
+                    color=alt.Color("cor:N", scale=None, legend=None),
+                )
+                rotulos = alt.Chart(df_comp).mark_text(dy=-12, fontSize=16, fontWeight="bold").encode(
+                    x=alt.X("grupo:N", sort=None),
+                    y=alt.Y("media:Q", scale=escala_y),
+                    text="rotulo:N",
+                )
+                st.altair_chart((barras + rotulos).properties(height=320), width="stretch")
 
             st.subheader("Datas Comemorativas e Feriados Religiosos")
             st.write("Veja os feriados e datas religiosas presentes em cada mês que ajudam a explicar os aumentos nas vendas:")
