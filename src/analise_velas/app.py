@@ -1,4 +1,4 @@
-# Aplicacao Streamlit para Analise de Vendas de Velas (TCC CST Banco de Dados)
+# Aplicação Streamlit para Análise de Vendas de Velas (TCC CST Banco de Dados)
 import streamlit as st
 import pandas as pd
 
@@ -9,9 +9,9 @@ from analise_velas.database import (
 from analise_velas.services.leitura import processar
 from analise_velas.services.analise import analisar_periodo, analisar_produtos, reais
 
-st.set_page_config(page_title="Analise de Vendas - Fabrica de Velas", layout="wide")
+st.set_page_config(page_title="Análise de Vendas - Fábrica de Velas", layout="wide")
 
-# aumenta o tamanho da fonte em toda a pagina para facilitar a leitura
+# aumenta o tamanho da fonte em toda a página para facilitar a leitura
 st.markdown("""
 <style>
 html, body, [class*="css"] { font-size: 19px; }
@@ -24,7 +24,7 @@ h3 { font-size: 1.5rem !important; }
 """, unsafe_allow_html=True)
 
 
-# roda so uma vez por sessao do servidor, nao a cada interacao
+# roda só uma vez por sessão do servidor, não a cada interação
 @st.cache_resource(show_spinner="Conectando ao banco de dados...")
 def iniciar_banco():
     try:
@@ -35,7 +35,7 @@ def iniciar_banco():
 iniciar_banco()
 
 
-# evita salvar o mesmo arquivo duas vezes ao recarregar a pagina
+# evita salvar o mesmo arquivo duas vezes ao recarregar a página
 if "arquivos_processados" not in st.session_state:
     st.session_state["arquivos_processados"] = set()
 
@@ -93,12 +93,12 @@ def salvar_produtos(db, nome, tipo, linhas):
 
 
 # --- BARRA LATERAL (PAINEL DE CONTROLE) ---
-st.sidebar.title("Fabrica de Velas")
+st.sidebar.title("Fábrica de Velas")
 st.sidebar.caption("Banco de Dados: Supabase (PostgreSQL)")
 st.sidebar.markdown("---")
 
 st.sidebar.subheader("1. Carregar Planilhas")
-st.sidebar.write("Arraste ou selecione uma ou mais planilhas Excel (.xlsx). O sistema identifica automaticamente se o arquivo e de vendas mensais ou de produtos.")
+st.sidebar.write("Arraste ou selecione uma ou mais planilhas Excel (.xlsx). O sistema identifica automaticamente se o arquivo é de vendas mensais ou de produtos.")
 
 arquivos_enviados = st.sidebar.file_uploader(
     "Selecione arquivos (.xlsx ou .xls):",
@@ -122,22 +122,22 @@ if arquivos_enviados:
                         st.session_state["arquivos_processados"].add(chave)
                         novos += 1
     except Exception:
-        st.sidebar.error("Nao foi possivel registrar o arquivo. Verifique a conexao com o banco de dados.")
+        st.sidebar.error("Não foi possível registrar o arquivo. Verifique a conexão com o banco de dados.")
 
     if novos > 0:
-        st.sidebar.success(f"{novos} nova(s) planilha(s) cadastrada(s) com sucesso. Atualize a pagina (tecla F5) para ver os dados no painel.")
+        st.sidebar.success(f"{novos} nova(s) planilha(s) cadastrada(s) com sucesso. Atualize a página (tecla F5) para ver os dados no painel.")
 
 st.sidebar.markdown("---")
-st.sidebar.subheader("2. Opcoes de Visualizacao")
+st.sidebar.subheader("2. Opções de Visualização")
 
-# o "with" garante que a conexao e fechada mesmo se a pagina for interrompida
+# o "with" garante que a conexão é fechada mesmo se a página for interrompida
 with SessionLocal() as db:
     analise_per = None
     analise_prod = None
-    titulo_origem = "Visao Consolidada de Todos os Registros"
+    titulo_origem = "Visão Consolidada de Todos os Registros"
 
     with st.spinner("Carregando dados do banco..."):
-        historico_opcoes = {"Visao Consolidada (Todas as Planilhas)": "TODAS"}
+        historico_opcoes = {"Visão Consolidada (Todas as Planilhas)": "TODAS"}
         try:
             importacoes = db.query(Importacao).order_by(Importacao.id.desc()).all()
             for imp in importacoes:
@@ -149,12 +149,12 @@ with SessionLocal() as db:
     selecao = st.sidebar.selectbox("Escolha os dados a exibir:", options=list(historico_opcoes.keys()))
     filtro_id = historico_opcoes[selecao]
 
-    with st.spinner("Calculando analise..."):
+    with st.spinner("Calculando análise..."):
         try:
             if filtro_id == "TODAS":
                 analise_per = analisar_periodo(db, importacao_ids=None)
                 analise_prod = analisar_produtos(db, importacao_ids=None)
-                titulo_origem = "Visao Consolidada de Todos os Registros"
+                titulo_origem = "Visão Consolidada de Todos os Registros"
             else:
                 imp_sel = db.query(Importacao).filter(Importacao.id == filtro_id).first()
                 if imp_sel:
@@ -163,35 +163,35 @@ with SessionLocal() as db:
                         titulo_origem = f"{imp_sel.nome_arquivo} (Vendas Mensais)"
                     else:
                         analise_prod = analisar_produtos(db, importacao_ids=filtro_id)
-                        titulo_origem = f"{imp_sel.nome_arquivo} (Analise de Produtos)"
+                        titulo_origem = f"{imp_sel.nome_arquivo} (Análise de Produtos)"
         except Exception:
-            st.error("Erro ao carregar dados do banco de dados. Tente atualizar a pagina.")
+            st.error("Erro ao carregar dados do banco de dados. Tente atualizar a página.")
 
 
 # --- PAINEL PRINCIPAL ---
-st.title("Painel de Inteligencia de Vendas - Fabrica de Velas")
-st.write("Analise simplificada de faturamento, desempenho de produtos e relacao com datas religiosas e feriados.")
+st.title("Painel de Inteligência de Vendas - Fábrica de Velas")
+st.write("Análise simplificada de faturamento, desempenho de produtos e relação com datas religiosas e feriados.")
 st.caption(f"Visualizando: {titulo_origem}")
 st.markdown("---")
 
 if analise_per is None and analise_prod is None:
-    st.info("Envie suas planilhas de vendas pela barra lateral, a esquerda, para comecar.")
+    st.info("Envie suas planilhas de vendas pela barra lateral, à esquerda, para começar.")
 
-    st.markdown("### O que voce vai descobrir:")
+    st.markdown("### O que você vai descobrir:")
     col_a, col_b, col_c = st.columns(3)
     with col_a:
-        st.markdown("#### Quanto a fabrica faturou")
-        st.write("Veja o total vendido em cada mes e quais meses foram os melhores.")
+        st.markdown("#### Quanto a fábrica faturou")
+        st.write("Veja o total vendido em cada mês e quais meses foram os melhores.")
     with col_b:
         st.markdown("#### Quais produtos vendem mais")
-        st.write("Veja quais velas trazem mais lucro e mais faturamento para o negocio.")
+        st.write("Veja quais velas trazem mais lucro e mais faturamento para o negócio.")
     with col_c:
         st.markdown("#### Datas que aumentam as vendas")
         st.write("Veja como feriados e datas religiosas, como a Semana Santa, influenciam as vendas.")
 else:
     tem_as_duas = analise_per is not None and analise_prod is not None
 
-    # com as duas planilhas, mostra em abas separadas; com so uma, mostra direto
+    # com as duas planilhas, mostra em abas separadas; com só uma, mostra direto
     if tem_as_duas:
         aba_per, aba_prod = st.tabs(["Vendas Mensais e Sazonalidade", "Produtos e Lucratividade"])
     else:
@@ -201,38 +201,65 @@ else:
     # --- SECAO 1: VENDAS MENSAIS ---
     if analise_per is not None:
         with aba_per:
-            st.header("Analise de Vendas por Mes e Sazonalidade")
+            st.header("Análise de Vendas por Mês e Sazonalidade")
             st.write("Entenda como as vendas variam ao longo do ano e quais meses apresentam maior procura.")
 
             res_per = analise_per["resumo"]
             periodos = analise_per["periodos"]
+            comparacao_datas = analise_per.get("comparacao_datas")
 
             if "destaque" in analise_per:
                 st.info(f"Resumo do Pico de Vendas: {analise_per['destaque']}")
 
             col1, col2, col3, col4 = st.columns(4)
             col1.metric("Faturamento Total", reais(res_per["total_periodo"]), help="Soma total das vendas registradas nas planilhas")
-            col2.metric("Media Mensal", reais(res_per["media"]), help="Valor medio vendido por mes")
-            col3.metric("Mes de Maior Venda", res_per["pico"]["nome"], reais(res_per["pico"]["total"]), help="Mes com maior faturamento do ano")
-            col4.metric("Mes de Menor Venda", res_per["fraco"]["nome"], reais(res_per["fraco"]["total"]), help="Mes com menor volume de vendas")
+            col2.metric("Média Mensal", reais(res_per["media"]), help="Valor médio vendido por mês")
+            col3.metric("Mês de Maior Venda", res_per["pico"]["nome"], reais(res_per["pico"]["total"]), help="Mês com maior faturamento do ano")
+            col4.metric("Mês de Menor Venda", res_per["fraco"]["nome"], reais(res_per["fraco"]["total"]), help="Mês com menor volume de vendas")
 
             st.markdown("<br>", unsafe_allow_html=True)
-            st.subheader("Grafico de Faturamento por Mes")
-            st.caption("As colunas mais altas indicam os meses em que a fabrica mais faturou:")
+            st.subheader("Gráfico de Faturamento por Mês")
+            st.caption("As barras em destaque marcam os meses com uma data comemorativa forte (Páscoa, Dia das Mães, Finados, etc.):")
 
             df_p = pd.DataFrame(periodos).set_index("nome")
-            st.bar_chart(df_p["total"], color="#f59e0b")
+            df_p["Data comemorativa forte"] = df_p["tem_data_forte"].map({True: "Sim", False: "Não"})
+            st.bar_chart(df_p, y="total", color="Data comemorativa forte")
+
+            if comparacao_datas:
+                st.subheader("Impacto das Datas Comemorativas no Faturamento")
+                st.write("Comparação entre a média de faturamento dos meses que caem em cima de uma data comemorativa forte e os demais meses:")
+
+                diferenca = comparacao_datas["diferenca_pct"]
+                if diferenca is not None:
+                    if diferenca > 0:
+                        st.success(f"Meses com data comemorativa forte faturam, em média, {diferenca}% a mais do que os outros meses.")
+                    elif diferenca < 0:
+                        st.warning(f"Meses com data comemorativa forte faturam, em média, {abs(diferenca)}% a menos do que os outros meses.")
+                    else:
+                        st.write("Não há diferença relevante entre os dois grupos de meses.")
+
+                df_comp = pd.DataFrame({
+                    "Grupo de meses": [
+                        f"Com data forte ({comparacao_datas['qtd_com_data_forte']} meses)",
+                        f"Sem data forte ({comparacao_datas['qtd_sem_data_forte']} meses)",
+                    ],
+                    "Faturamento Médio": [
+                        comparacao_datas["media_com_data_forte"],
+                        comparacao_datas["media_sem_data_forte"],
+                    ],
+                }).set_index("Grupo de meses")
+                st.bar_chart(df_comp["Faturamento Médio"], color="#8b5cf6")
 
             st.subheader("Datas Comemorativas e Feriados Religiosos")
-            st.write("Veja os feriados e datas religiosas presentes em cada mes que ajudam a explicar os aumentos nas vendas:")
+            st.write("Veja os feriados e datas religiosas presentes em cada mês que ajudam a explicar os aumentos nas vendas:")
 
             tabela_m = []
             for p in periodos:
-                datas_str = ", ".join(p["datas"]) if p["datas"] else "Nenhum feriado principal neste mes"
+                datas_str = ", ".join(p["datas"]) if p["datas"] else "Nenhum feriado principal neste mês"
                 tabela_m.append({
-                    "Mes": p["nome"],
+                    "Mês": p["nome"],
                     "Faturamento Total": reais(p["total"]),
-                    "Comparacao com Mes Anterior": f"{p['variacao_pct']}%" if p['variacao_pct'] is not None else "-",
+                    "Comparação com Mês Anterior": f"{p['variacao_pct']}%" if p['variacao_pct'] is not None else "-",
                     "Datas Comemorativas e Feriados": datas_str
                 })
             st.dataframe(pd.DataFrame(tabela_m), width="stretch", hide_index=True)
@@ -240,26 +267,26 @@ else:
     # --- SECAO 2: ANALISE DE PRODUTOS ---
     if analise_prod is not None:
         with aba_prod:
-            st.header("Analise de Desempenho dos Produtos")
-            st.write("Descubra quais velas trazem mais receita e maior margem de lucro para a fabrica.")
+            st.header("Análise de Desempenho dos Produtos")
+            st.write("Descubra quais velas trazem mais receita e maior margem de lucro para a fábrica.")
 
             res_prod = analise_prod["resumo"]
             ranking = analise_prod["ranking"]
 
             col1, col2, col3, col4 = st.columns(4)
             col1.metric("Faturamento Total", reais(res_prod["faturamento_total"]), help="Valor total arrecadado com a venda dos produtos")
-            col2.metric("Lucro Total", reais(res_prod["lucro_total"]), help="Lucro liquido obtido sobre os produtos")
-            col3.metric("Margem Geral", f"{res_prod['margem_geral_pct']}%", help="Porcentagem media de lucro sobre o faturamento")
+            col2.metric("Lucro Total", reais(res_prod["lucro_total"]), help="Lucro líquido obtido sobre os produtos")
+            col3.metric("Margem Geral", f"{res_prod['margem_geral_pct']}%", help="Porcentagem média de lucro sobre o faturamento")
             col4.metric("Tipos de Produtos", res_prod["qtd_produtos"], help="Quantidade de itens diferentes analisados")
 
             st.subheader("Ranking de Produtos Mais Vendidos")
-            st.caption("Os produtos no topo sao os que mais geraram faturamento:")
+            st.caption("Os produtos no topo são os que mais geraram faturamento:")
             top10 = {p["descricao"]: p["total"] for p in ranking[:10]}
             df_top = pd.DataFrame(top10.items(), columns=["descricao", "total"]).set_index("descricao")
             st.bar_chart(df_top["total"], color="#14b8a6")
 
             st.subheader("Vendas por Unidade (Kg vs Unidade)")
-            st.caption("Divisao do faturamento entre vendas por quilo e vendas por unidade:")
+            st.caption("Divisão do faturamento entre vendas por quilo e vendas por unidade:")
             totais_unidade = {}
             for p in ranking:
                 totais_unidade[p["unidade"]] = totais_unidade.get(p["unidade"], 0.0) + p["total"]
@@ -274,11 +301,11 @@ else:
             tabela_p = []
             for p in ranking:
                 tabela_p.append({
-                    "Descricao do Produto": p["descricao"],
+                    "Descrição do Produto": p["descricao"],
                     "Quantidade Vendida": f"{p['quantidade']} {p['unidade']}",
                     "Faturamento Total": reais(p["total"]),
                     "Lucro Total": reais(p["lucro"]),
-                    "Participacao (%)": f"{p['participacao_pct']}%",
+                    "Participação (%)": f"{p['participacao_pct']}%",
                     "Margem de Lucro (%)": f"{p['margem_pct']}%",
                 })
             st.dataframe(pd.DataFrame(tabela_p), width="stretch", hide_index=True)

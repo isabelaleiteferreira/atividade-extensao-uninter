@@ -1,4 +1,4 @@
-# conexao e tabelas do banco de dados (PostgreSQL no Supabase)
+# conexão e tabelas do banco de dados (PostgreSQL no Supabase)
 import os
 from datetime import datetime
 from dotenv import load_dotenv
@@ -7,11 +7,11 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 
 load_dotenv()
 
-# a URL do banco fica no arquivo .env (nao e commitada no git)
+# a URL do banco fica no arquivo .env (não é commitada no git)
 URL = os.getenv("DATABASE_URL")
 
 # connect_timeout evita travar se o banco demorar para responder
-# pool_timeout evita travar se todas as conexoes estiverem em uso
+# pool_timeout evita travar se todas as conexões estiverem em uso
 engine = create_engine(
     URL,
     pool_pre_ping=True,
@@ -33,7 +33,7 @@ class Importacao(Base):
 
 
 class VendaMensal(Base):
-    # vendas de cada mes
+    # vendas de cada mês
     __tablename__ = "vendas_mensais"
     id = Column(Integer, primary_key=True)
     importacao_id = Column(Integer, ForeignKey("importacoes.id"))

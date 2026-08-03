@@ -73,7 +73,7 @@ def processar(fonte):
         if isinstance(fonte, bytes):
             tabela = pd.read_excel(io.BytesIO(fonte))
         elif hasattr(fonte, "read"):
-            # garante ponteiro no inicio antes e depois da leitura
+            # garante ponteiro no início antes e depois da leitura
             if hasattr(fonte, "seek"):
                 fonte.seek(0)
             conteudo = fonte.read()
